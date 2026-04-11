@@ -1,0 +1,102 @@
+{
+  "entities": {
+    "Claim": {
+      "title": "Claim",
+      "description": "A fact-checkable claim extracted from an Instagram screenshot.",
+      "type": "object",
+      "properties": {
+        "claim_text": {
+          "type": "string",
+          "description": "The text content of the claim."
+        },
+        "embedding": {
+          "type": "array",
+          "items": { "type": "number" },
+          "description": "Vector embedding of the claim text for semantic similarity."
+        },
+        "source_username": {
+          "type": "string",
+          "description": "The Instagram username where the claim originated."
+        },
+        "image_hash": {
+          "type": "string",
+          "description": "Hash of the original image to detect exact duplicates."
+        },
+        "date_submitted": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp of the initial submission."
+        },
+        "verification_status": {
+          "type": "string",
+          "enum": ["true", "false", "misleading", "unverified"],
+          "description": "Current fact-check status."
+        },
+        "confidence_score": {
+          "type": "number",
+          "description": "AI confidence score (0-100)."
+        },
+        "explanation": {
+          "type": "string",
+          "description": "Detailed explanation of the verdict."
+        },
+        "sources": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "List of source URLs used for verification."
+        },
+        "times_requested": {
+          "type": "integer",
+          "description": "Total number of times this claim has been submitted."
+        },
+        "times_verified": {
+          "type": "integer",
+          "description": "Number of times the AI has run a full verification cycle."
+        },
+        "user_votes": {
+          "type": "object",
+          "properties": {
+            "true": { "type": "integer" },
+            "false": { "type": "integer" },
+            "misleading": { "type": "integer" }
+          },
+          "description": "Community feedback on the claim."
+        },
+        "trending_score": {
+          "type": "number",
+          "description": "Calculated score for trending visibility."
+        }
+      },
+      "required": ["claim_text", "date_submitted", "verification_status"]
+    },
+    "GlobalStats": {
+      "title": "GlobalStats",
+      "description": "Aggregated statistics for the entire platform.",
+      "type": "object",
+      "properties": {
+        "total_claims": { "type": "integer" },
+        "total_verifications": { "type": "integer" },
+        "avg_confidence": { "type": "number" },
+        "status_distribution": {
+          "type": "object",
+          "properties": {
+            "true": { "type": "integer" },
+            "false": { "type": "integer" },
+            "misleading": { "type": "integer" },
+            "unverified": { "type": "integer" }
+          }
+        }
+      }
+    }
+  },
+  "firestore": {
+    "/claims": {
+      "schema": "Claim",
+      "description": "Collection of all unique claims."
+    },
+    "/stats/global": {
+      "schema": "GlobalStats",
+      "description": "Singleton document for global platform statistics."
+    }
+  }
+}

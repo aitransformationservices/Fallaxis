@@ -1,0 +1,71 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: claims
+    // Fields:
+    //   - claim_text: string (required)
+    //   - embedding: list (required)
+    //   - verification_status: string (required, enum: ['true', 'false', 'misleading', 'unverified'])
+    //   - confidence_score: number (required, 0-100)
+    //   - explanation: string (optional)
+    //   - sources: list (optional)
+    //   - times_requested: number (required)
+    //   - user_votes: map (required, keys: ['true', 'false', 'misleading'])
+    //   - trending_score: number (required)
+    //
+    // Collection: stats
+    // Document: global
+    // Fields:
+    //   - total_claims: number
+    //   - total_verifications: number
+    //   - avg_confidence: number
+    //   - status_distribution: map
+    //
+    // ===============================================================
+
+    // Helper Functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && 
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+         (request.auth.token.email == "knowledgetechnolgies@gmail.com" && request.auth.token.email_verified == true));
+    }
+
+    // Rules
+    
+    // Claims Collection
+    match /claims/{claimId} {
+      // Allow authenticated users to read claims
+      allow read: if isAuthenticated();
+      
+      // Only the server (admin SDK) should create/update claims for now to ensure 
+      // embedding generation and deduplication logic is followed.
+      // If client-side voting is needed directly:
+      allow update: if isAuthenticated() && 
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['user_votes']) &&
+        isAdmin() == false; // Simplified: non-admins can only update votes via API, 
+                            // but we'll lock this down to 'false' to force API usage.
+      
+      allow write: if isAdmin();
+    }
+
+    // Stats Collection
+    match /stats/{docId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    // Users Collection (for RBAC)
+    match /users/{userId} {
+      allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
+      allow write: if isAdmin();
+    }
+  }
+}
