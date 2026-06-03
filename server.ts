@@ -27,10 +27,26 @@ try {
 }
 
 // Initialize Firebase Admin
-const firebaseApp = admin.apps.find(a => a.name === "my-app") 
-  || admin.initializeApp({
-      projectId: firebaseConfig.projectId,
-    }, "my-app");
+const projectId = process.env.FIREBASE_PROJECT_ID || firebaseConfig.projectId;
+const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
+const privateKey = process.env.FIREBASE_PRIVATE_KEY;
+
+let firebaseApp;
+if (privateKey && clientEmail) {
+  firebaseApp = admin.apps.find(a => a.name === "my-app") 
+    || admin.initializeApp({
+        credential: admin.credential.cert({
+          projectId: projectId,
+          clientEmail: clientEmail,
+          privateKey: privateKey.replace(/\\n/g, '\n'),
+        }),
+      }, "my-app");
+} else {
+  firebaseApp = admin.apps.find(a => a.name === "my-app") 
+    || admin.initializeApp({
+        projectId: projectId,
+      }, "my-app");
+}
 
 const db = firebaseConfig.firestoreDatabaseId 
   ? getFirestore(firebaseApp, firebaseConfig.firestoreDatabaseId)
@@ -334,4 +350,8 @@ async function startServer() {
   }
 }
 
-startServer();
+if (!process.env.VERCEL) {
+  startServer();
+}
+
+export default app;
